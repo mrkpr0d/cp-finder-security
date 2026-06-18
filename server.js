@@ -6,9 +6,11 @@ const port = Number(process.env.PORT || 4173);
 const publicDir = path.join(__dirname, "public");
 const geonamesPath = path.join(__dirname, "data", "geonames-es", "ES.txt");
 const historyLogPath = path.join(__dirname, "data", "search-history.json");
+const historyIndexPath = path.join(__dirname, "data", "official-history-index.json");
 const officialCache = new Map();
 const balanceIndexCache = new Map();
 const historyResultCache = new Map();
+let historyIndexCache;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -646,6 +648,78 @@ function addQuarterlyDeltas(series) {
   return series;
 }
 
+function buildIndexedHistory(municipality, province) {
+  if (historyIndexCache === undefined) {
+    historyIndexCache = readJsonFile(historyIndexPath, null);
+  }
+  if (!historyIndexCache?.areas || !Array.isArray(historyIndexCache.descriptors)) return null;
+
+  const municipalityKey = normalizeKey(municipality);
+  const provinceKey = normalizeKey(province);
+  let scope = "municipio";
+  let areaEntry = historyIndexCache.areas.municipio?.[municipalityKey];
+  if (!areaEntry && provinceKey) {
+    scope = "provincia";
+    areaEntry = historyIndexCache.areas.provincia?.[provinceKey];
+  }
+  if (!areaEntry?.points?.length) return null;
+
+  const metrics = historyIndexCache.metrics?.length ? historyIndexCache.metrics : metricDefinitions();
+  const descriptorIndexes = new Set();
+  const series = areaEntry.points
+    .map(([descriptorIndex, metricIndex, cumulative]) => {
+      const descriptor = historyIndexCache.descriptors[descriptorIndex];
+      const metric = metrics[metricIndex];
+      if (!descriptor || !metric || !Number.isFinite(cumulative)) return null;
+      descriptorIndexes.add(descriptorIndex);
+      return {
+        metric: metric.id,
+        label: metric.label,
+        scope,
+        area: areaEntry.name,
+        year: descriptor.year,
+        quarter: descriptor.quarter,
+        quarterLabel: descriptor.label,
+        officialPeriod: quarterCurrentPeriod(descriptor.year, descriptor.quarter),
+        cumulative,
+        quarterly: cumulative,
+        sourceFile: scope === "municipio" ? descriptor.municipalityFile : descriptor.provinceFile,
+        sourceUrl: descriptor.sourceUrl,
+        updated: descriptor.updated
+      };
+    })
+    .filter(Boolean);
+
+  const sources = [...descriptorIndexes]
+    .sort((a, b) => a - b)
+    .map((descriptorIndex) => {
+      const descriptor = historyIndexCache.descriptors[descriptorIndex];
+      return {
+        label: descriptor.label,
+        file: scope === "municipio" ? descriptor.municipalityFile : descriptor.provinceFile,
+        updated: descriptor.updated,
+        url: descriptor.sourceUrl
+      };
+    });
+
+  return {
+    scope,
+    area: areaEntry.name,
+    metrics,
+    series: addQuarterlyDeltas(series),
+    availableYears: [...new Set(series.map((point) => point.year))],
+    sources,
+    skippedPeriods: historyIndexCache.skipped || [],
+    generatedAt: historyIndexCache.generatedAt,
+    qualityFlags: [
+      scope === "municipio" ? "Municipio oficial" : "Provincia fallback",
+      "Indice local generado desde CSV oficiales",
+      "Acumulado oficial disponible",
+      "Trimestre real calculado por resta"
+    ]
+  };
+}
+
 async function loadBalanceRows(descriptor, scope) {
   const url = scope === "municipio" ? descriptor.municipalityCsv : descriptor.provinceCsv;
   const text = await fetchText(url, 20000);
@@ -660,6 +734,12 @@ async function handleHistory(req, res) {
   const cached = historyResultCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < 1000 * 60 * 60 * 6) {
     sendJson(res, 200, cached.payload);
+    return;
+  }
+  const indexed = buildIndexedHistory(municipality, province);
+  if (indexed) {
+    historyResultCache.set(cacheKey, { createdAt: Date.now(), payload: indexed });
+    sendJson(res, 200, indexed);
     return;
   }
 

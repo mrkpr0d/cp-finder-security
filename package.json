@@ -4,7 +4,8 @@
   "private": true,
   "description": "Dashboard territorial con datos oficiales, historico trimestral y noticias verificadas para seguridad residencial y negocio.",
   "scripts": {
-    "start": "node --max-old-space-size=400 server.js"
+    "start": "node --max-old-space-size=400 server.js",
+    "build:history-cache": "node scripts/build-history-cache.js"
   },
   "engines": {
     "node": ">=20"
