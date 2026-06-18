@@ -1,0 +1,12 @@
+{
+  "name": "cp-finder-security",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard territorial con datos oficiales, historico trimestral y noticias verificadas para seguridad residencial y negocio.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

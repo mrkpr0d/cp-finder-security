@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1265, initial-scale=1, minimum-scale=0.25, maximum-scale=3, user-scalable=yes" />
+    <title>CP Finder Security</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./styles.css?v=control-csi-10" />
+  </head>
+  <body class="force-desktop">
+    <div class="app-shell">
+      <aside class="left-rail">
+        <div class="brand">
+          <span class="brand-mark">CP</span>
+          <div>
+            <strong>CP Finder Security</strong>
+            <small>Inteligencia territorial verificada</small>
+          </div>
+        </div>
+
+        <form id="searchForm" class="command-card">
+          <label for="searchInput">Direccion, ciudad, municipio o CP</label>
+          <div class="command-row">
+            <input id="searchInput" autocomplete="off" value="28013" />
+            <button type="submit" class="analyze-button"><span>Analizar</span><b>-></b></button>
+          </div>
+          <div id="suggestions" class="suggestions"></div>
+        </form>
+
+        <section class="panel source-panel">
+          <div class="panel-header compact">
+            <div>
+              <span class="panel-label">Carga</span>
+              <h2>Estado de fuentes</h2>
+            </div>
+          </div>
+          <div id="loadSteps" class="load-steps"></div>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="panel-header compact">
+            <div>
+              <span class="panel-label">Sesiones</span>
+              <h2>Historial</h2>
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+      </aside>
+
+      <main class="dashboard">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Ficha territorial</p>
+            <h1 id="areaTitle">Madrid</h1>
+            <p id="areaSubtitle">CP 28013 · Madrid · Comunidad de Madrid</p>
+          </div>
+          <div class="topbar-actions">
+            <div id="themeSwitcher" class="theme-switcher" aria-label="Tema">
+              <button type="button" data-theme-choice="system" class="active">Sistema</button>
+              <button type="button" data-theme-choice="light">Claro</button>
+              <button type="button" data-theme-choice="dark">Oscuro</button>
+            </div>
+            <span id="scopeBadge" class="status-pill">Verificando</span>
+            <button id="printReport" type="button" class="ghost-button">PDF</button>
+          </div>
+        </header>
+
+        <section class="desktop-grid">
+          <section class="map-stack">
+            <section class="insight-row">
+              <article class="quick-card">
+                <span>Zona</span>
+                <strong id="quickArea">--</strong>
+                <small id="quickScope">Resolviendo</small>
+              </article>
+              <article class="quick-card">
+                <span>Serie</span>
+                <strong id="quickSeries">--</strong>
+                <small>historico oficial</small>
+              </article>
+              <article class="quick-card">
+                <span>Noticias</span>
+                <strong id="quickNews">--</strong>
+                <small>fuentes recientes</small>
+              </article>
+            </section>
+
+            <article class="map-card">
+              <div id="map"></div>
+              <div class="map-footer">
+                <span id="geoSummary">Centro aproximado y marcadores orientativos.</span>
+                <span>OpenStreetMap</span>
+              </div>
+            </article>
+
+          </section>
+
+          <section class="analytics-stack">
+            <article class="panel chart-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-label">Historico trimestral</span>
+                  <h2 id="chartTitle">Robos en domicilios</h2>
+                </div>
+                <span id="historyStatus" class="status-pill">Cargando</span>
+              </div>
+
+              <div class="control-grid">
+                <div id="metricControls" class="segmented"></div>
+                <div id="viewControls" class="segmented compact-segmented">
+                  <button type="button" data-view="line" class="active">Linea</button>
+                  <button type="button" data-view="bar">Barras</button>
+                  <button type="button" data-view="annual">Anual T4</button>
+                  <button type="button" data-view="yoy">YoY</button>
+                  <button type="button" data-view="heatmap">Heatmap</button>
+                  <button type="button" data-view="radar">Radar</button>
+                </div>
+                <div id="modeControls" class="segmented compact-segmented">
+                  <button type="button" data-mode="quarterly" class="active">Trimestre real</button>
+                  <button type="button" data-mode="cumulative">Acumulado oficial</button>
+                </div>
+                <div id="quarterControls" class="segmented compact-segmented">
+                  <button type="button" data-quarter="all" class="active">Todos</button>
+                  <button type="button" data-quarter="1">T1</button>
+                  <button type="button" data-quarter="2">T2</button>
+                  <button type="button" data-quarter="3">T3</button>
+                  <button type="button" data-quarter="4">T4</button>
+                </div>
+              </div>
+
+              <div id="mainChart" class="chart"></div>
+              <div id="comparisonStrip" class="comparison-strip"></div>
+            </article>
+
+            <article class="panel news-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Noticias verificadas</span>
+                  <h2>Robos en viviendas y negocios</h2>
+                </div>
+                <span id="newsStatus" class="status-pill">Cargando</span>
+              </div>
+              <div id="newsList" class="news-list"></div>
+            </article>
+          </section>
+
+          <aside class="right-rail">
+            <article class="panel score-card">
+              <span class="panel-label">Indice local</span>
+              <strong id="scoreValue">--</strong>
+              <p id="scoreText">Calculado con cifras oficiales y noticias verificadas.</p>
+            </article>
+
+            <article class="panel kpi-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">KPIs oficiales</span>
+                  <h2>Ministerio Interior</h2>
+                </div>
+                <span id="officialStatus" class="status-pill">Cargando</span>
+              </div>
+              <div id="officialGrid" class="kpi-grid"></div>
+            </article>
+
+            <article class="panel occupation-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Ocupacion / vivienda</span>
+                  <h2>Contexto oficial</h2>
+                </div>
+                <span id="occupationStatus" class="status-pill">Cargando</span>
+              </div>
+              <div id="occupationGrid" class="occupation-grid"></div>
+            </article>
+
+            <article class="panel seller-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Modo vendedor</span>
+                  <h2>Consulta verificable</h2>
+                </div>
+                <span id="sellerStatus" class="status-pill">Listo</span>
+              </div>
+              <div id="sellerGrid" class="seller-grid"></div>
+            </article>
+
+            <article class="panel market-panel collapsible-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Mercado alarmas</span>
+                  <h2>Competencia verificable</h2>
+                </div>
+                <button id="toggleMarket" type="button" class="status-pill panel-toggle">Nacional</button>
+              </div>
+              <div id="marketGrid" class="market-grid"></div>
+            </article>
+
+            <article class="panel selected-news-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Noticia seleccionada</span>
+                  <h2>Fuente</h2>
+                </div>
+                <span id="selectedStatus" class="status-pill">Mapa</span>
+              </div>
+              <div id="selectedNews" class="selected-news"></div>
+            </article>
+          </aside>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel sources-panel collapsible-panel">
+            <div class="panel-header compact">
+              <div>
+                <span class="panel-label">Trazabilidad</span>
+                <h2>Fuentes</h2>
+              </div>
+              <button id="toggleSources" type="button" class="status-pill panel-toggle">Ver todo</button>
+            </div>
+            <div id="sourceList" class="source-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+    <script src="./app.js?v=control-csi-10"></script>
+  </body>
+</html>
