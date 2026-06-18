@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const port = Number(process.env.PORT || 4173);
+const host = process.env.HOST || "0.0.0.0";
 const publicDir = path.join(__dirname, "public");
 const geonamesPath = path.join(__dirname, "data", "geonames-es", "ES.txt");
 const historyLogPath = path.join(__dirname, "data", "search-history.json");
@@ -1545,6 +1546,6 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res);
 });
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`Radar Seguridad Local: http://0.0.0.0:${port}`);
+server.listen(port, host, () => {
+  console.log(`Radar Seguridad Local: http://${host}:${port}`);
 });
