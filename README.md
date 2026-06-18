@@ -17,7 +17,7 @@ http://localhost:4173
 Produccion principal:
 
 ```text
-https://postalsignal.es
+https://www.postalsignal.es
 ```
 
 ## Despliegue gratuito en Render
