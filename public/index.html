@@ -3,49 +3,40 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=1265, initial-scale=1, minimum-scale=0.25, maximum-scale=3, user-scalable=yes" />
-    <title>CP Finder Security</title>
+    <title>PostalSignal.es</title>
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="./styles.css?v=control-csi-12" />
+    <link rel="stylesheet" href="./styles.css?v=postal-signal-1" />
   </head>
   <body class="force-desktop">
     <div class="app-shell">
       <aside class="left-rail">
         <div class="brand">
-          <span class="brand-mark">CP</span>
+          <span class="brand-mark">PS</span>
           <div>
-            <strong>CP Finder Security</strong>
-            <small>Inteligencia territorial verificada</small>
+            <strong>PostalSignal.es</strong>
+            <small>Inteligencia territorial</small>
           </div>
         </div>
 
-        <form id="searchForm" class="command-card">
-          <label for="searchInput">Direccion, ciudad, municipio o CP</label>
-          <div class="command-row">
-            <input id="searchInput" autocomplete="off" value="28013" />
-            <button type="submit" class="analyze-button"><span>Analizar</span><b>-></b></button>
-          </div>
-          <div id="suggestions" class="suggestions"></div>
-        </form>
-
-        <section class="panel source-panel">
-          <div class="panel-header compact">
-            <div>
-              <span class="panel-label">Carga</span>
-              <h2>Estado de fuentes</h2>
-            </div>
-          </div>
-          <div id="loadSteps" class="load-steps"></div>
-        </section>
+        <nav class="rail-nav" aria-label="Secciones">
+          <a href="#territorio" class="active"><span>01</span>Territorio</a>
+          <a href="#historico"><span>02</span>Historico</a>
+          <a href="#noticias"><span>03</span>Noticias</a>
+          <a href="#indicadores"><span>04</span>Indicadores</a>
+          <a href="#fuentes"><span>05</span>Fuentes</a>
+        </nav>
 
         <section class="panel history-panel">
           <div class="panel-header compact">
             <div>
               <span class="panel-label">Sesiones</span>
-              <h2>Historial</h2>
+              <h2>Actividad guardada</h2>
             </div>
+            <strong id="sessionCount" class="session-count">0</strong>
           </div>
+          <p id="sessionLatest" class="session-latest">Sin consultas todavia</p>
           <div id="historyList" class="history-list"></div>
         </section>
       </aside>
@@ -53,7 +44,7 @@
       <main class="dashboard">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Ficha territorial</p>
+            <p class="eyebrow">PostalSignal / Ficha territorial</p>
             <h1 id="areaTitle">Madrid</h1>
             <p id="areaSubtitle">CP 28013 · Madrid · Comunidad de Madrid</p>
           </div>
@@ -68,7 +59,27 @@
           </div>
         </header>
 
-        <section class="desktop-grid">
+        <section class="search-console">
+          <form id="searchForm" class="search-form">
+            <label for="searchInput">Buscar direccion, municipio, ciudad o codigo postal</label>
+            <div class="search-row">
+              <input id="searchInput" autocomplete="off" value="28013" placeholder="Ej. 28013, El Espinar o Calle Serrano 24" />
+              <button type="submit" class="search-button">Buscar</button>
+            </div>
+            <div id="suggestions" class="suggestions"></div>
+          </form>
+
+          <div class="source-progress">
+            <div class="progress-heading">
+              <span id="loadProgressLabel">Preparando fuentes</span>
+              <strong id="loadProgressValue">0%</strong>
+            </div>
+            <div class="progress-track"><span id="loadProgressBar"></span></div>
+            <div id="loadSteps" class="progress-steps"></div>
+          </div>
+        </section>
+
+        <section id="territorio" class="primary-grid">
           <section class="map-stack">
             <section class="insight-row">
               <article class="quick-card">
@@ -95,10 +106,9 @@
                 <span>OpenStreetMap</span>
               </div>
             </article>
-
           </section>
 
-          <section class="analytics-stack">
+          <section id="historico" class="analytics-stack">
             <article class="panel chart-panel">
               <div class="panel-header">
                 <div>
@@ -146,31 +156,34 @@
               <div id="mainChart" class="chart"></div>
               <div id="comparisonStrip" class="comparison-strip"></div>
             </article>
-
-            <article class="panel news-panel">
-              <div class="panel-header compact">
-                <div>
-                  <span class="panel-label">Noticias verificadas</span>
-                  <h2>Robos en viviendas y negocios</h2>
-                </div>
-                <span id="newsStatus" class="status-pill">Cargando</span>
-              </div>
-              <div id="newsList" class="news-list"></div>
-            </article>
           </section>
+        </section>
 
-          <aside class="right-rail">
-            <article class="panel selected-news-panel">
-              <div class="panel-header compact">
+        <section id="noticias" class="panel news-panel">
+          <div class="panel-header compact">
+            <div>
+              <span class="panel-label">Noticias verificadas</span>
+              <h2>Robos en viviendas y negocios</h2>
+            </div>
+            <span id="newsStatus" class="status-pill">Cargando</span>
+          </div>
+          <div class="news-workspace">
+            <div id="newsList" class="news-list"></div>
+            <aside class="selected-news-inline">
+              <div class="selected-inline-header">
                 <div>
                   <span class="panel-label">Noticia seleccionada</span>
-                  <h2>Detalle verificado</h2>
+                  <h3>Detalle y fuente</h3>
                 </div>
                 <span id="selectedStatus" class="status-pill">Mapa</span>
               </div>
               <div id="selectedNews" class="selected-news"></div>
-            </article>
+            </aside>
+          </div>
+        </section>
 
+        <section id="indicadores" class="intelligence-grid">
+          <div class="intelligence-column">
             <article class="panel score-card">
               <span class="panel-label">Indice local</span>
               <strong id="scoreValue">--</strong>
@@ -187,7 +200,9 @@
               </div>
               <div id="officialGrid" class="kpi-grid"></div>
             </article>
+          </div>
 
+          <div class="intelligence-column">
             <article class="panel occupation-panel">
               <div class="panel-header compact">
                 <div>
@@ -198,18 +213,22 @@
               </div>
               <div id="occupationGrid" class="occupation-grid"></div>
             </article>
+          </div>
 
+          <div class="intelligence-column">
             <article class="panel seller-panel">
               <div class="panel-header compact">
                 <div>
-                  <span class="panel-label">Modo vendedor</span>
-                  <h2>Consulta verificable</h2>
+                  <span class="panel-label">Senales operativas</span>
+                  <h2>Lectura verificable</h2>
                 </div>
                 <span id="sellerStatus" class="status-pill">Listo</span>
               </div>
               <div id="sellerGrid" class="seller-grid"></div>
             </article>
+          </div>
 
+          <div class="intelligence-column">
             <article class="panel market-panel collapsible-panel">
               <div class="panel-header compact">
                 <div>
@@ -220,11 +239,10 @@
               </div>
               <div id="marketGrid" class="market-grid"></div>
             </article>
-
-          </aside>
+          </div>
         </section>
 
-        <section class="bottom-grid">
+        <section id="fuentes" class="bottom-grid">
           <article class="panel sources-panel collapsible-panel">
             <div class="panel-header compact">
               <div>
@@ -241,6 +259,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
-    <script src="./app.js?v=control-csi-12"></script>
+    <script src="./app.js?v=postal-signal-1"></script>
   </body>
 </html>

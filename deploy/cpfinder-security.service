@@ -1,5 +1,5 @@
 [Unit]
-Description=CP Finder Security
+Description=PostalSignal.es
 After=network-online.target
 Wants=network-online.target
 

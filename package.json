@@ -1,8 +1,8 @@
 {
-  "name": "cp-finder-security",
+  "name": "postalsignal",
   "version": "0.1.0",
   "private": true,
-  "description": "Dashboard territorial con datos oficiales, historico trimestral y noticias verificadas para seguridad residencial y negocio.",
+  "description": "PostalSignal.es: inteligencia territorial con datos oficiales, historico trimestral y noticias verificadas.",
   "scripts": {
     "start": "node --max-old-space-size=400 server.js",
     "build:history-cache": "node scripts/build-history-cache.js"

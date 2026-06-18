@@ -1296,13 +1296,12 @@ async function handleNews(req, res) {
     const xml = await fetchText(googleUrl);
     const googleArticles = parseGoogleNewsRss(xml);
     const seen = new Set();
-    let articles = [...gdeltArticles, ...googleArticles].filter((article) => {
+    const articles = [...gdeltArticles, ...googleArticles].filter((article) => {
       const key = `${article.title}|${article.url}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     }).slice(0, 12);
-    articles = await enrichImages(articles);
     sendJson(res, 200, {
       source: articles.length ? "GDELT + Google News RSS" : "sin resultados",
       queryUrl: googleUrl.toString(),
@@ -1347,8 +1346,12 @@ function readRequestBody(req) {
 }
 
 async function handleHistoryLog(req, res) {
+  const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+  const requestedUserId = clampText(requestUrl.searchParams.get("userId"), 100);
   if (req.method === "GET") {
-    const entries = readJsonFile(historyLogPath, []);
+    const entries = readJsonFile(historyLogPath, []).filter(
+      (entry) => !requestedUserId || entry.userId === requestedUserId
+    );
     const seen = new Set();
     const deduped = entries.filter((entry) => {
       const key = normalizeKey(
@@ -1370,6 +1373,8 @@ async function handleHistoryLog(req, res) {
       const entry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         createdAt: new Date().toISOString(),
+        userId: clampText(payload.userId || requestedUserId, 100),
+        sessionId: clampText(payload.sessionId, 100),
         query: clampText(payload.query, 180),
         area: payload.area || null,
         scope: clampText(payload.scope, 40),
@@ -1381,17 +1386,20 @@ async function handleHistoryLog(req, res) {
       const entryKey = normalizeKey(
         `${entry.query} ${entry.area?.postalCode || ""} ${entry.area?.municipality || ""} ${entry.area?.province || ""}`
       );
-      const next = [
+      const ownEntries = entries.filter((item) => item.userId === entry.userId);
+      const otherEntries = entries.filter((item) => item.userId !== entry.userId);
+      const nextOwn = [
         entry,
-        ...entries.filter((item) => {
+        ...ownEntries.filter((item) => {
           const itemKey = normalizeKey(
             `${item.query} ${item.area?.postalCode || ""} ${item.area?.municipality || ""} ${item.area?.province || ""}`
           );
           return itemKey !== entryKey;
         })
       ].slice(0, 100);
+      const next = [...nextOwn, ...otherEntries].slice(0, 500);
       writeJsonFile(historyLogPath, next);
-      sendJson(res, 200, { entry, entries: next.slice(0, 30) });
+      sendJson(res, 200, { entry, entries: nextOwn.slice(0, 30) });
     } catch (error) {
       sendJson(res, 400, { error: "No se pudo guardar el historial", detail: error.message });
     }
@@ -1501,7 +1509,7 @@ const server = http.createServer((req, res) => {
   if (req.url === "/api/health" || req.url.startsWith("/api/health?")) {
     sendJson(res, 200, {
       status: "ok",
-      service: "cp-finder-security",
+      service: "postalsignal",
       timestamp: new Date().toISOString()
     });
     return;
@@ -1547,5 +1555,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Radar Seguridad Local: http://${host}:${port}`);
+  console.log(`PostalSignal.es: http://${host}:${port}`);
 });

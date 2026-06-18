@@ -8,6 +8,14 @@ const appScript = document.querySelector('script[src*="app.js"]');
 const appBasePath = appScript
   ? new URL(appScript.src, window.location.href).pathname.replace(/\/[^/]*$/, "")
   : "";
+const clientId =
+  localStorage.getItem("postalsignal-client-id") ||
+  (crypto.randomUUID?.() || `client-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const sessionId =
+  sessionStorage.getItem("postalsignal-session-id") ||
+  (crypto.randomUUID?.() || `session-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+localStorage.setItem("postalsignal-client-id", clientId);
+sessionStorage.setItem("postalsignal-session-id", sessionId);
 
 const state = {
   query: "28013",
@@ -50,7 +58,12 @@ const elements = {
   input: document.querySelector("#searchInput"),
   suggestions: document.querySelector("#suggestions"),
   loadSteps: document.querySelector("#loadSteps"),
+  loadProgressLabel: document.querySelector("#loadProgressLabel"),
+  loadProgressValue: document.querySelector("#loadProgressValue"),
+  loadProgressBar: document.querySelector("#loadProgressBar"),
   historyList: document.querySelector("#historyList"),
+  sessionCount: document.querySelector("#sessionCount"),
+  sessionLatest: document.querySelector("#sessionLatest"),
   areaTitle: document.querySelector("#areaTitle"),
   areaSubtitle: document.querySelector("#areaSubtitle"),
   scopeBadge: document.querySelector("#scopeBadge"),
@@ -120,6 +133,9 @@ function bindEvents() {
   elements.input.addEventListener("input", () => {
     clearTimeout(suggestTimer);
     suggestTimer = setTimeout(() => loadSuggestions(elements.input.value), 160);
+  });
+  elements.input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") elements.suggestions.innerHTML = "";
   });
 
   elements.viewControls.addEventListener("change", () => {
@@ -239,21 +255,27 @@ function renderLoadSteps() {
     history: "Historico trimestral",
     news: "Noticias"
   };
-  elements.loadSteps.innerHTML = Object.entries(labels)
+  const entries = Object.entries(labels);
+  const completed = entries.filter(([key]) => ["done", "error"].includes(state.steps[key])).length;
+  const loading = entries.some(([key]) => state.steps[key] === "loading");
+  const progress = Math.round(((completed + (loading ? 0.35 : 0)) / entries.length) * 100);
+  const errors = entries.filter(([key]) => state.steps[key] === "error").length;
+  elements.loadProgressBar.style.width = `${Math.min(100, progress)}%`;
+  elements.loadProgressValue.textContent = `${Math.min(100, progress)}%`;
+  elements.loadProgressLabel.textContent =
+    completed === entries.length
+      ? errors
+        ? `Carga completada con ${errors} incidencia${errors === 1 ? "" : "s"}`
+        : "Todas las fuentes verificadas"
+      : loading
+        ? "Consultando fuentes oficiales"
+        : "Preparando consulta";
+  elements.loadSteps.innerHTML = entries
     .map(([key, label]) => {
       const status = state.steps[key] || "idle";
-      return `<div class="step" data-status="${status}"><span></span><div><strong>${label}</strong><small>${stepLabel(status)}</small></div></div>`;
+      return `<span class="progress-step" data-status="${status}"><i></i>${label}</span>`;
     })
     .join("");
-}
-
-function stepLabel(status) {
-  return {
-    idle: "pendiente",
-    loading: "cargando",
-    done: "listo",
-    error: "error"
-  }[status] || status;
 }
 
 async function fetchJson(url, options) {
@@ -939,7 +961,6 @@ function selectArticle(index) {
     button.classList.toggle("active", Number(button.dataset.newsIndex) === index);
   });
   updateMap();
-  document.querySelector(".right-rail")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderSelectedNews(article) {
@@ -1062,6 +1083,8 @@ async function saveSession() {
   if (!state.area || (!state.official && !state.history && !state.news.length)) return;
   const score = calculateScore();
   const payload = {
+    userId: clientId,
+    sessionId,
     query: state.query,
     area: state.area,
     scope: state.history?.scope || state.official?.scope || "",
@@ -1072,7 +1095,7 @@ async function saveSession() {
     sourcesCount: document.querySelectorAll("#sourceList a").length
   };
   try {
-    const response = await fetchJson("/api/history-log", {
+    const response = await fetchJson(`/api/history-log?userId=${encodeURIComponent(clientId)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload)
@@ -1086,7 +1109,7 @@ async function saveSession() {
 
 async function loadHistoryLog() {
   try {
-    const payload = await fetchJson("/api/history-log");
+    const payload = await fetchJson(`/api/history-log?userId=${encodeURIComponent(clientId)}`);
     state.historyEntries = payload.entries || [];
     renderHistoryLog();
   } catch {
@@ -1095,6 +1118,11 @@ async function loadHistoryLog() {
 }
 
 function renderHistoryLog() {
+  const sessionTotal = new Set(state.historyEntries.map((entry) => entry.sessionId).filter(Boolean)).size;
+  elements.sessionCount.textContent = String(sessionTotal || (state.historyEntries.length ? 1 : 0));
+  elements.sessionLatest.textContent = state.historyEntries.length
+    ? `${state.historyEntries.length} consultas guardadas · ultima ${formatDate(state.historyEntries[0].createdAt)}`
+    : "Sin consultas todavia";
   if (!state.historyEntries.length) {
     elements.historyList.innerHTML = `<div class="empty-state">Tus busquedas quedaran guardadas en esta maquina.</div>`;
     return;

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cp-finder-security
+    name: postalsignal
     runtime: node
     plan: free
     region: frankfurt
