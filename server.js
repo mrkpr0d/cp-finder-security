@@ -670,9 +670,20 @@ async function handleHistory(req, res) {
     let area = municipality;
     const series = [];
     const sources = [];
+    const skippedPeriods = [];
 
     for (const descriptor of descriptors) {
-      const rows = await loadBalanceRows(descriptor, scope);
+      let rows;
+      try {
+        rows = await loadBalanceRows(descriptor, scope);
+      } catch (error) {
+        skippedPeriods.push({
+          label: descriptor.label,
+          scope,
+          reason: error.name === "AbortError" ? "timeout" : error.message
+        });
+        continue;
+      }
       const areaRows = pickAreaRows(rows, area, scope);
       if (!areaRows.length) continue;
       for (const metric of metrics) {
@@ -691,7 +702,17 @@ async function handleHistory(req, res) {
       area = province;
       sources.length = 0;
       for (const descriptor of descriptors) {
-        const rows = await loadBalanceRows(descriptor, scope);
+        let rows;
+        try {
+          rows = await loadBalanceRows(descriptor, scope);
+        } catch (error) {
+          skippedPeriods.push({
+            label: descriptor.label,
+            scope,
+            reason: error.name === "AbortError" ? "timeout" : error.message
+          });
+          continue;
+        }
         const areaRows = pickAreaRows(rows, area, scope);
         if (!areaRows.length) continue;
         for (const metric of metrics) {
@@ -713,10 +734,14 @@ async function handleHistory(req, res) {
       series: addQuarterlyDeltas(series),
       availableYears: [...new Set(series.map((point) => point.year))],
       sources,
+      skippedPeriods,
       qualityFlags: [
         scope === "municipio" ? "Municipio oficial" : "Provincia fallback",
         "Acumulado oficial disponible",
-        "Trimestre real calculado por resta"
+        "Trimestre real calculado por resta",
+        skippedPeriods.length
+          ? `${skippedPeriods.length} periodos omitidos por indisponibilidad temporal`
+          : "Cobertura trimestral completa disponible"
       ]
     };
     historyResultCache.set(cacheKey, { createdAt: Date.now(), payload });
