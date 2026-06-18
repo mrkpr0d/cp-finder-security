@@ -8,6 +8,7 @@ const geonamesPath = path.join(__dirname, "data", "geonames-es", "ES.txt");
 const historyLogPath = path.join(__dirname, "data", "search-history.json");
 const officialCache = new Map();
 const balanceIndexCache = new Map();
+const historyResultCache = new Map();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -165,15 +166,22 @@ function metricDefinitions() {
   ];
 }
 
-async function fetchText(url) {
-  const response = await fetch(url, {
-    headers: {
-      "user-agent": "radar-seguridad-local/0.2"
-    }
-  });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  return bytes.toString("utf8").replace(/^\uFEFF/, "");
+async function fetchText(url, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "user-agent": "radar-seguridad-local/0.2"
+      }
+    });
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return bytes.toString("utf8").replace(/^\uFEFF/, "");
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchJson(url, timeoutMs = 3500) {
@@ -640,15 +648,20 @@ function addQuarterlyDeltas(series) {
 
 async function loadBalanceRows(descriptor, scope) {
   const url = scope === "municipio" ? descriptor.municipalityCsv : descriptor.provinceCsv;
-  const file = scope === "municipio" ? descriptor.municipalityFile : descriptor.provinceFile;
-  const cacheKey = `balance-${scope}-${descriptor.year}-${descriptor.quarter}-${file}`;
-  return fetchOfficialCsv(cacheKey, url);
+  const text = await fetchText(url, 20000);
+  return parseSemicolonCsv(text);
 }
 
 async function handleHistory(req, res) {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
   const municipality = clampText(requestUrl.searchParams.get("municipality"), 80);
   const province = clampText(requestUrl.searchParams.get("province"), 80);
+  const cacheKey = `${normalizeKey(municipality)}|${normalizeKey(province)}`;
+  const cached = historyResultCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < 1000 * 60 * 60 * 6) {
+    sendJson(res, 200, cached.payload);
+    return;
+  }
 
   try {
     const descriptors = await getBalanceDescriptors();
@@ -693,7 +706,7 @@ async function handleHistory(req, res) {
       }
     }
 
-    sendJson(res, 200, {
+    const payload = {
       scope,
       area,
       metrics,
@@ -705,7 +718,9 @@ async function handleHistory(req, res) {
         "Acumulado oficial disponible",
         "Trimestre real calculado por resta"
       ]
-    });
+    };
+    historyResultCache.set(cacheKey, { createdAt: Date.now(), payload });
+    sendJson(res, 200, payload);
   } catch (error) {
     sendJson(res, 502, {
       error: "No se pudo construir el historico oficial",
