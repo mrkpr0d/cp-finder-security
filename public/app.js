@@ -4,6 +4,11 @@ let mainChart;
 let suggestTimer;
 let systemThemeQuery;
 
+const appScript = document.querySelector('script[src*="app.js"]');
+const appBasePath = appScript
+  ? new URL(appScript.src, window.location.href).pathname.replace(/\/[^/]*$/, "")
+  : "";
+
 const state = {
   query: "28013",
   area: null,
@@ -270,7 +275,8 @@ function setActive(container, key, value) {
 }
 
 async function fetchJson(url, options) {
-  const response = await fetch(url, options);
+  const requestUrl = url.startsWith("/api/") ? `${appBasePath}${url}` : url;
+  const response = await fetch(requestUrl, options);
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || payload.detail || `HTTP ${response.status}`);
   return payload;
