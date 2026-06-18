@@ -122,35 +122,23 @@ function bindEvents() {
     suggestTimer = setTimeout(() => loadSuggestions(elements.input.value), 160);
   });
 
-  elements.viewControls.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-view]");
-    if (!button) return;
-    state.view = button.dataset.view;
-    setActive(elements.viewControls, "view", state.view);
+  elements.viewControls.addEventListener("change", () => {
+    state.view = elements.viewControls.value;
     renderHistoryCharts();
   });
 
-  elements.modeControls.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-mode]");
-    if (!button) return;
-    state.mode = button.dataset.mode;
-    setActive(elements.modeControls, "mode", state.mode);
+  elements.modeControls.addEventListener("change", () => {
+    state.mode = elements.modeControls.value;
     renderHistoryCharts();
   });
 
-  elements.quarterControls.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-quarter]");
-    if (!button) return;
-    state.quarter = button.dataset.quarter;
-    setActive(elements.quarterControls, "quarter", state.quarter);
+  elements.quarterControls.addEventListener("change", () => {
+    state.quarter = elements.quarterControls.value;
     renderHistoryCharts();
   });
 
-  elements.metricControls.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-metric]");
-    if (!button) return;
-    state.metric = button.dataset.metric;
-    setActive(elements.metricControls, "metric", state.metric);
+  elements.metricControls.addEventListener("change", () => {
+    state.metric = elements.metricControls.value;
     renderHistoryCharts();
   });
 
@@ -266,12 +254,6 @@ function stepLabel(status) {
     done: "listo",
     error: "error"
   }[status] || status;
-}
-
-function setActive(container, key, value) {
-  container.querySelectorAll(`[data-${key}]`).forEach((button) => {
-    button.classList.toggle("active", button.dataset[key] === value);
-  });
 }
 
 async function fetchJson(url, options) {
@@ -673,9 +655,12 @@ function cleanMetricName(value) {
 
 function renderMetricControls(metrics) {
   elements.metricControls.innerHTML = metrics
-    .map((metric) => `<button type="button" data-metric="${escapeHtml(metric.id)}">${escapeHtml(metric.label)}</button>`)
+    .map((metric) => `<option value="${escapeHtml(metric.id)}">${escapeHtml(metric.label)}</option>`)
     .join("");
-  setActive(elements.metricControls, "metric", state.metric);
+  elements.metricControls.value = state.metric;
+  elements.viewControls.value = state.view;
+  elements.modeControls.value = state.mode;
+  elements.quarterControls.value = state.quarter;
 }
 
 function renderHistoryCharts() {
@@ -914,9 +899,9 @@ function renderNews(payload = {}) {
     .map((article, index) => {
       const tag = classifyArticle(article);
       return `
-        <button type="button" class="news-item" data-news-index="${index}">
-          ${article.image ? `<img src="${escapeHtml(article.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : `<span class="news-thumb">${escapeHtml(tag)}</span>`}
-          <div>
+        <button type="button" class="news-item${state.selectedArticleIndex === index ? " active" : ""}" data-news-index="${index}">
+          <span class="news-index">${String(index + 1).padStart(2, "0")}</span>
+          <div class="news-copy">
             <span>${escapeHtml(tag)}</span>
             <strong>${escapeHtml(article.title)}</strong>
             <small>${escapeHtml(article.source || "fuente")} · ${formatDate(article.date)}</small>
@@ -947,9 +932,14 @@ function classifyArticle(article) {
 }
 
 function selectArticle(index) {
+  if (!state.news[index]) return;
   state.selectedArticleIndex = index;
   renderSelectedNews(state.news[index]);
+  elements.newsList.querySelectorAll("[data-news-index]").forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset.newsIndex) === index);
+  });
   updateMap();
+  document.querySelector(".right-rail")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderSelectedNews(article) {
@@ -963,13 +953,14 @@ function renderSelectedNews(article) {
   elements.selectedStatus.textContent = tag;
   elements.selectedNews.innerHTML = `
     <article class="selected-card">
-      ${article.image ? `<img src="${escapeHtml(article.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}
-      <span>${escapeHtml(tag)}</span>
+      <div class="selected-card-heading">
+        <span>${escapeHtml(tag)}</span>
+        <small>${formatDate(article.date)}</small>
+      </div>
       <h3>${escapeHtml(article.title)}</h3>
       <p>${escapeHtml(article.snippet || "Sin entradilla disponible en la fuente indexada.")}</p>
       <dl>
         <dt>Fuente</dt><dd>${escapeHtml(article.source || "No indicada")}</dd>
-        <dt>Fecha</dt><dd>${formatDate(article.date)}</dd>
         <dt>Inhibidor</dt><dd>${hasInhibitor ? "Mencionado" : "No mencionado"}</dd>
       </dl>
       <a href="${escapeHtml(article.url || "#")}" target="_blank" rel="noreferrer">Abrir fuente original</a>
@@ -994,8 +985,18 @@ function updateMap() {
       fillOpacity: 0.8,
       weight: 2
     }).addTo(markerGroup);
-    marker.bindPopup(`<strong>${escapeHtml(article.title)}</strong><br>${escapeHtml(article.source || "")}`);
+    const tag = classifyArticle(article);
+    marker.bindPopup(`
+      <article class="map-news-popup">
+        <span>${escapeHtml(tag)}</span>
+        <strong>${escapeHtml(article.title)}</strong>
+        <small>${escapeHtml(article.source || "Fuente no indicada")} Â· ${formatDate(article.date)}</small>
+      </article>`);
     marker.on("click", () => selectArticle(index));
+    if (state.selectedArticleIndex === index) {
+      marker.openPopup();
+      map.panTo(point, { animate: true });
+    }
   });
   setTimeout(() => map.invalidateSize(), 80);
 }

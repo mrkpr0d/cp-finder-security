@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="./styles.css?v=control-csi-10" />
+    <link rel="stylesheet" href="./styles.css?v=control-csi-12" />
   </head>
   <body class="force-desktop">
     <div class="app-shell">
@@ -108,27 +108,39 @@
                 <span id="historyStatus" class="status-pill">Cargando</span>
               </div>
 
-              <div class="control-grid">
-                <div id="metricControls" class="segmented"></div>
-                <div id="viewControls" class="segmented compact-segmented">
-                  <button type="button" data-view="line" class="active">Linea</button>
-                  <button type="button" data-view="bar">Barras</button>
-                  <button type="button" data-view="annual">Anual T4</button>
-                  <button type="button" data-view="yoy">YoY</button>
-                  <button type="button" data-view="heatmap">Heatmap</button>
-                  <button type="button" data-view="radar">Radar</button>
-                </div>
-                <div id="modeControls" class="segmented compact-segmented">
-                  <button type="button" data-mode="quarterly" class="active">Trimestre real</button>
-                  <button type="button" data-mode="cumulative">Acumulado oficial</button>
-                </div>
-                <div id="quarterControls" class="segmented compact-segmented">
-                  <button type="button" data-quarter="all" class="active">Todos</button>
-                  <button type="button" data-quarter="1">T1</button>
-                  <button type="button" data-quarter="2">T2</button>
-                  <button type="button" data-quarter="3">T3</button>
-                  <button type="button" data-quarter="4">T4</button>
-                </div>
+              <div class="chart-toolbar">
+                <label class="toolbar-field">
+                  <span>Metrica</span>
+                  <select id="metricControls"></select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Vista</span>
+                  <select id="viewControls">
+                    <option value="line">Linea</option>
+                    <option value="bar">Barras</option>
+                    <option value="annual">Anual T4</option>
+                    <option value="yoy">Comparativa anual</option>
+                    <option value="heatmap">Mapa de calor</option>
+                    <option value="radar">Radar</option>
+                  </select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Lectura</span>
+                  <select id="modeControls">
+                    <option value="quarterly">Trimestre real</option>
+                    <option value="cumulative">Acumulado oficial</option>
+                  </select>
+                </label>
+                <label class="toolbar-field narrow">
+                  <span>Periodo</span>
+                  <select id="quarterControls">
+                    <option value="all">Todos</option>
+                    <option value="1">T1</option>
+                    <option value="2">T2</option>
+                    <option value="3">T3</option>
+                    <option value="4">T4</option>
+                  </select>
+                </label>
               </div>
 
               <div id="mainChart" class="chart"></div>
@@ -148,6 +160,17 @@
           </section>
 
           <aside class="right-rail">
+            <article class="panel selected-news-panel">
+              <div class="panel-header compact">
+                <div>
+                  <span class="panel-label">Noticia seleccionada</span>
+                  <h2>Detalle verificado</h2>
+                </div>
+                <span id="selectedStatus" class="status-pill">Mapa</span>
+              </div>
+              <div id="selectedNews" class="selected-news"></div>
+            </article>
+
             <article class="panel score-card">
               <span class="panel-label">Indice local</span>
               <strong id="scoreValue">--</strong>
@@ -198,16 +221,6 @@
               <div id="marketGrid" class="market-grid"></div>
             </article>
 
-            <article class="panel selected-news-panel">
-              <div class="panel-header compact">
-                <div>
-                  <span class="panel-label">Noticia seleccionada</span>
-                  <h2>Fuente</h2>
-                </div>
-                <span id="selectedStatus" class="status-pill">Mapa</span>
-              </div>
-              <div id="selectedNews" class="selected-news"></div>
-            </article>
           </aside>
         </section>
 
@@ -228,6 +241,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
-    <script src="./app.js?v=control-csi-11"></script>
+    <script src="./app.js?v=control-csi-12"></script>
   </body>
 </html>
