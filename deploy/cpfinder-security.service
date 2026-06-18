@@ -1,0 +1,21 @@
+[Unit]
+Description=CP Finder Security
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=elaprendizestoico
+Group=elaprendizestoico
+WorkingDirectory=/home/elaprendizestoico/apps/cp-finder-security
+Environment=NODE_ENV=production
+Environment=PORT=4173
+Environment=HOST=127.0.0.1
+ExecStart=/usr/bin/node --max-old-space-size=400 /home/elaprendizestoico/apps/cp-finder-security/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
